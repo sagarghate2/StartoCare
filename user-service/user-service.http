@@ -1,0 +1,55 @@
+@baseUrl = http://localhost:8082
+@token = paste_access_token_here_after_login
+
+### Request a registration OTP
+POST {{baseUrl}}/api/auth/send-otp
+Content-Type: application/json
+
+{
+  "email": "example.user@example.com"
+}
+
+### Register (change email if this account already exists; use the emailed OTP)
+POST {{baseUrl}}/api/auth/register
+Content-Type: application/json
+
+{
+  "fullName": "Example User",
+  "email": "example.user@example.com",
+  "phoneNumber": "+919876543210",
+  "password": "A-Strong-Password-123",
+  "otp": "123456"
+}
+
+### Login
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "example.user@example.com",
+  "password": "A-Strong-Password-123"
+}
+
+### Current authenticated user
+GET {{baseUrl}}/api/users/me
+Authorization: Bearer {{token}}
+
+### Update current user's name
+PATCH {{baseUrl}}/api/users/me
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "fullName": "Updated Example User",
+  "phoneNumber": "+919876543210"
+}
+
+### Change password (revokes previously issued tokens)
+POST {{baseUrl}}/api/auth/change-password
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "currentPassword": "A-Strong-Password-123",
+  "newPassword": "Another-Strong-Password-456"
+}

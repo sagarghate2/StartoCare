@@ -1,0 +1,15 @@
+target/
+build/
+bin/
+.idea/
+.vscode/
+*.iml
+.classpath
+.project
+.settings/
+.metadata/
+.env
+.env.*
+!.env.example
+*.log
+*.class
