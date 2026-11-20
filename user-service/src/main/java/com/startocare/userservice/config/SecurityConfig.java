@@ -38,6 +38,7 @@ public class SecurityConfig {
                                 "/api/auth/send-otp",
                                 "/api/auth/testing"
                         ).permitAll()
+                        .requestMatchers("/internal/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)

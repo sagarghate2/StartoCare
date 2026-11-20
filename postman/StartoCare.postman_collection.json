@@ -1,0 +1,418 @@
+{
+  "info": {
+    "_postman_id": "d2fc9732-611d-4c7b-8fcf-2ac5d8a41d85",
+    "name": "StartoCare Local Services",
+    "description": "Local end-to-end testing for FAMILY, COMPANION, ADMIN, companion search, travel estimates, bookings, and Razorpay payment verification. Import StartoCare.local.postman_environment.json and select it. Provider secrets and database credentials belong in the local launch prompt, never in Postman.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1 - User service health and account registration",
+      "item": [
+        {
+          "name": "Health check",
+          "request": { "method": "GET", "header": [], "url": "{{userBase}}/api/auth/testing" }
+        },
+        {
+          "name": "Send OTP",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"email\":\"{{email}}\"}", "options": { "raw": { "language": "json" } } },
+            "url": "{{userBase}}/api/auth/send-otp"
+          }
+        },
+        {
+          "name": "Register FAMILY",
+          "event": [{
+            "listen": "test",
+            "script": { "type": "text/javascript", "exec": [
+              "if (pm.response.code === 201) {",
+              "  const body = pm.response.json();",
+              "  pm.environment.set('familyToken', body.token);",
+              "  pm.environment.set('email', body.user.email);",
+              "}"
+            ] }
+          }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"fullName\":\"Example Family\",\"email\":\"{{email}}\",\"phoneNumber\":\"+919876543210\",\"password\":\"{{password}}\",\"otp\":\"{{otp}}\",\"role\":\"FAMILY\"}", "options": { "raw": { "language": "json" } } },
+            "url": "{{userBase}}/api/auth/register"
+          }
+        },
+        {
+          "name": "Login FAMILY",
+          "event": [{
+            "listen": "test",
+            "script": { "type": "text/javascript", "exec": [
+              "if (pm.response.code === 200) { pm.environment.set('familyToken', pm.response.json().token); }"
+            ] }
+          }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"email\":\"{{email}}\",\"password\":\"{{password}}\"}", "options": { "raw": { "language": "json" } } },
+            "url": "{{userBase}}/api/auth/login"
+          }
+        },
+        {
+          "name": "Send OTP to COMPANION",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"email\":\"{{companionEmail}}\"}", "options": { "raw": { "language": "json" } } },
+            "url": "{{userBase}}/api/auth/send-otp"
+          }
+        },
+        {
+          "name": "Register COMPANION",
+          "description": "Set otp to the code emailed to companionEmail before sending.",
+          "event": [{
+            "listen": "test",
+            "script": { "type": "text/javascript", "exec": [
+              "if (pm.response.code === 201) {",
+              "  const body = pm.response.json();",
+              "  pm.environment.set('companionToken', body.token);",
+              "  pm.environment.set('companionId', body.user.id);",
+              "}"
+            ] }
+          }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"fullName\":\"Example Companion\",\"email\":\"{{companionEmail}}\",\"phoneNumber\":\"+919876543211\",\"password\":\"{{password}}\",\"otp\":\"{{otp}}\",\"role\":\"COMPANION\"}", "options": { "raw": { "language": "json" } } },
+            "url": "{{userBase}}/api/auth/register"
+          }
+        },
+        {
+          "name": "Login COMPANION",
+          "event": [{
+            "listen": "test",
+            "script": { "type": "text/javascript", "exec": [
+              "if (pm.response.code === 200) {",
+              "  const body = pm.response.json();",
+              "  pm.environment.set('companionToken', body.token);",
+              "  pm.environment.set('companionId', body.user.id);",
+              "}"
+            ] }
+          }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"email\":\"{{companionEmail}}\",\"password\":\"{{password}}\"}", "options": { "raw": { "language": "json" } } },
+            "url": "{{userBase}}/api/auth/login"
+          }
+        },
+        {
+          "name": "Send OTP to ADMIN account",
+          "description": "Admin cannot self-register. This registers a normal FAMILY account that must be promoted through the local database before admin login.",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"email\":\"{{adminEmail}}\"}", "options": { "raw": { "language": "json" } } },
+            "url": "{{userBase}}/api/auth/send-otp"
+          }
+        },
+        {
+          "name": "Register future ADMIN as FAMILY",
+          "description": "Set otp to the code emailed to adminEmail. After registration, promote this email using the local-only SQL in booking-service/README.md, then run Login ADMIN.",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"fullName\":\"Local Admin\",\"email\":\"{{adminEmail}}\",\"phoneNumber\":\"+919876543212\",\"password\":\"{{password}}\",\"otp\":\"{{otp}}\",\"role\":\"FAMILY\"}", "options": { "raw": { "language": "json" } } },
+            "url": "{{userBase}}/api/auth/register"
+          }
+        },
+        {
+          "name": "Login ADMIN",
+          "description": "ADMIN cannot self-register. First create this account as FAMILY, then promote it using the local-only SQL in booking-service/README.md. Log in again here.",
+          "event": [{
+            "listen": "test",
+            "script": { "type": "text/javascript", "exec": [
+              "if (pm.response.code === 200) { pm.environment.set('adminToken', pm.response.json().token); }"
+            ] }
+          }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"email\":\"{{adminEmail}}\",\"password\":\"{{password}}\"}", "options": { "raw": { "language": "json" } } },
+            "url": "{{userBase}}/api/auth/login"
+          }
+        },
+        {
+          "name": "Get current user",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{familyToken}}" }],
+            "url": "{{userBase}}/api/users/me"
+          }
+        },
+        {
+          "name": "Update user profile",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{familyToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"fullName\":\"Updated Example Family\",\"phoneNumber\":\"+919876543210\"}", "options": { "raw": { "language": "json" } } },
+            "url": "{{userBase}}/api/users/me"
+          }
+        },
+        {
+          "name": "Change password",
+          "description": "Run last; log in again afterwards because this invalidates the current token.",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{familyToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"currentPassword\":\"{{password}}\",\"newPassword\":\"Change-Me-Now-123!\"}", "options": { "raw": { "language": "json" } } },
+            "url": "{{userBase}}/api/auth/change-password"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2 - Companion profile and admin verification",
+      "item": [
+        {
+          "name": "Submit companion service location",
+          "event": [{
+            "listen": "test",
+            "script": { "type": "text/javascript", "exec": [
+              "if (pm.response.code === 200) { pm.environment.set('companionId', pm.response.json().id); }"
+            ] }
+          }],
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Authorization", "value": "Bearer {{companionToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"serviceLocationAddress\":\"Secunderabad Railway Station, Hyderabad\",\"latitude\":{{companionLatitude}},\"longitude\":{{companionLongitude}}}", "options": { "raw": { "language": "json" } } },
+            "url": "{{userBase}}/api/users/me/companion-profile"
+          }
+        },
+        {
+          "name": "Update companion location",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Authorization", "value": "Bearer {{companionToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"serviceLocationAddress\":\"Nagole, Hyderabad\",\"latitude\":{{patientLatitude}},\"longitude\":{{patientLongitude}}}", "options": { "raw": { "language": "json" } } },
+            "url": "{{userBase}}/api/users/me/companion-location"
+          }
+        },
+        {
+          "name": "List pending companion applications",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": "{{userBase}}/api/admin/companions/pending"
+          }
+        },
+        {
+          "name": "Verify companion",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"status\":\"VERIFIED\"}", "options": { "raw": { "language": "json" } } },
+            "url": "{{userBase}}/api/admin/companions/{{companionId}}/verification"
+          }
+        },
+        {
+          "name": "Reject companion",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"status\":\"REJECTED\"}", "options": { "raw": { "language": "json" } } },
+            "url": "{{userBase}}/api/admin/companions/{{companionId}}/verification"
+          }
+        },
+        {
+          "name": "Search nearby verified companions",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{familyToken}}" }],
+            "url": "{{userBase}}/api/companions/search?latitude={{patientLatitude}}&longitude={{patientLongitude}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3 - Fare pricing and bookings",
+      "item": [
+        {
+          "name": "Get service durations",
+          "request": { "method": "GET", "header": [], "url": "{{bookingBase}}/api/bookings/pricing/durations" }
+        },
+        {
+          "name": "Get travel pricing",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": "{{bookingBase}}/api/admin/travel-pricing"
+          }
+        },
+        {
+          "name": "Configure travel pricing",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"baseFarePerLeg\":20.00,\"ratePerKm\":8.00}", "options": { "raw": { "language": "json" } } },
+            "url": "{{bookingBase}}/api/admin/travel-pricing"
+          }
+        },
+        {
+          "name": "Estimate PLAN_1",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{familyToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"companionId\":\"{{companionId}}\",\"durationMinutes\":{{durationMinutes}},\"travelPlan\":\"PLAN_1\",\"hospitalName\":\"{{hospitalName}}\",\"hospitalAddress\":\"{{hospitalAddress}}\",\"patientName\":\"Example Patient\",\"appointmentDate\":\"{{appointmentDate}}\",\"appointmentTime\":\"{{appointmentTime}}\",\"patientHomeAddress\":\"{{patientHomeAddress}}\"}", "options": { "raw": { "language": "json" } } },
+            "url": "{{bookingBase}}/api/bookings/estimate"
+          }
+        },
+        {
+          "name": "Estimate PLAN_2",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{familyToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"companionId\":\"{{companionId}}\",\"durationMinutes\":{{durationMinutes}},\"travelPlan\":\"PLAN_2\",\"hospitalName\":\"{{hospitalName}}\",\"hospitalAddress\":\"{{hospitalAddress}}\",\"patientName\":\"Example Patient\",\"appointmentDate\":\"{{appointmentDate}}\",\"appointmentTime\":\"{{appointmentTime}}\"}", "options": { "raw": { "language": "json" } } },
+            "url": "{{bookingBase}}/api/bookings/estimate"
+          }
+        },
+        {
+          "name": "Estimate PLAN_3",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{familyToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"companionId\":\"{{companionId}}\",\"durationMinutes\":{{durationMinutes}},\"travelPlan\":\"PLAN_3\",\"hospitalName\":\"{{hospitalName}}\",\"hospitalAddress\":\"{{hospitalAddress}}\",\"patientName\":\"Example Patient\",\"appointmentDate\":\"{{appointmentDate}}\",\"appointmentTime\":\"{{appointmentTime}}\",\"patientHomeAddress\":\"{{patientHomeAddress}}\"}", "options": { "raw": { "language": "json" } } },
+            "url": "{{bookingBase}}/api/bookings/estimate"
+          }
+        },
+        {
+          "name": "Create PLAN_1 booking",
+          "event": [{
+            "listen": "test",
+            "script": { "type": "text/javascript", "exec": [
+              "if (pm.response.code === 200) { pm.environment.set('bookingId', pm.response.json().id); }"
+            ] }
+          }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{familyToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"companionId\":\"{{companionId}}\",\"durationMinutes\":{{durationMinutes}},\"travelPlan\":\"PLAN_1\",\"hospitalName\":\"{{hospitalName}}\",\"hospitalAddress\":\"{{hospitalAddress}}\",\"patientName\":\"Example Patient\",\"appointmentDate\":\"{{appointmentDate}}\",\"appointmentTime\":\"{{appointmentTime}}\",\"patientHomeAddress\":\"{{patientHomeAddress}}\",\"patientContactNumber\":\"+919876543210\",\"patientAge\":56}", "options": { "raw": { "language": "json" } } },
+            "url": "{{bookingBase}}/api/bookings"
+          }
+        },
+        {
+          "name": "List my bookings",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{familyToken}}" }],
+            "url": "{{bookingBase}}/api/bookings/my-bookings?page=0&size=20"
+          }
+        },
+        {
+          "name": "Get booking",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{familyToken}}" }],
+            "url": "{{bookingBase}}/api/bookings/{{bookingId}}"
+          }
+        },
+        {
+          "name": "Companion - list pending requests",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{companionToken}}" }],
+            "url": "{{bookingBase}}/api/bookings/companion-requests?page=0&size=20"
+          }
+        },
+        {
+          "name": "Companion - accept booking",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{companionToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"decision\":\"ACCEPTED\"}", "options": { "raw": { "language": "json" } } },
+            "url": "{{bookingBase}}/api/bookings/{{bookingId}}/companion-response"
+          }
+        },
+        {
+          "name": "Companion - decline booking",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{companionToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"decision\":\"DECLINED\"}", "options": { "raw": { "language": "json" } } },
+            "url": "{{bookingBase}}/api/bookings/{{bookingId}}/companion-response"
+          }
+        },
+        {
+          "name": "Admin manual travel quotation",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"travelAmount\":150.00,\"travelQuoteStatus\":\"CONFIRMED\",\"note\":\"Admin quote\"}", "options": { "raw": { "language": "json" } } },
+            "url": "{{bookingBase}}/api/bookings/{{bookingId}}/travel-quotation"
+          }
+        },
+        {
+          "name": "Admin update booking status",
+          "description": "Admin advances an accepted booking (COMPANION_ASSIGNED, IN_PROGRESS, COMPLETED) or cancels it. The selected companion accepts or declines a PENDING request.",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"status\":\"COMPANION_ASSIGNED\"}", "options": { "raw": { "language": "json" } } },
+            "url": "{{bookingBase}}/api/bookings/{{bookingId}}/status"
+          }
+        },
+        {
+          "name": "Cancel booking",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{familyToken}}" }],
+            "url": "{{bookingBase}}/api/bookings/{{bookingId}}/cancel"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3 - Payments",
+      "item": [
+        {
+          "name": "Family - get booking checkout order",
+          "description": "Retry while the booking-service payment.requested event is being consumed. Uses the familyToken bearer auth.",
+          "auth": {
+            "type": "bearer",
+            "bearer": [{ "key": "token", "value": "{{familyToken}}", "type": "string" }]
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "type": "text/javascript", "exec": [
+              "if (pm.response.code === 200) {",
+              "  const body = pm.response.json();",
+              "  pm.environment.set('razorpayOrderId', body.razorpayOrderId);",
+              "}"
+            ] }
+          }],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{paymentBase}}/api/payments/bookings/{{bookingId}}"
+          }
+        },
+        {
+          "name": "Family - verify Razorpay Checkout payment",
+          "description": "Replace values with the values returned by Razorpay Checkout. This verifies payment; it does not initiate a payment.",
+          "auth": {
+            "type": "bearer",
+            "bearer": [{ "key": "token", "value": "{{familyToken}}", "type": "string" }]
+          },
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"razorpay_order_id\":\"{{razorpayOrderId}}\",\"razorpay_payment_id\":\"PAYMENT_ID_FROM_CHECKOUT\",\"razorpay_signature\":\"SIGNATURE_FROM_CHECKOUT\"}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{paymentBase}}/api/payments/verify"
+          }
+        }
+      ]
+    }
+  ]
+}

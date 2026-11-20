@@ -3,6 +3,8 @@ package com.startocare.userservice;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.startocare.userservice.entity.User;
+import com.startocare.userservice.enums.CompanionVerificationStatus;
+import com.startocare.userservice.enums.Role;
 import com.startocare.userservice.repository.UserRepository;
 import com.startocare.userservice.security.JwtService;
 import io.jsonwebtoken.Claims;
@@ -36,6 +38,7 @@ import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -51,6 +54,7 @@ class AuthIntegrationTest {
     @DynamicPropertySource
     static void jwtProperties(DynamicPropertyRegistry registry) {
         registry.add("app.jwt.secret", () -> TEST_JWT_SECRET);
+        registry.add("app.internal-api-key", () -> "test-companion-api-key");
     }
 
     @Autowired
@@ -75,6 +79,116 @@ class AuthIntegrationTest {
     void clearUsers() {
         userRepository.deleteAll();
         reset(mailSender);
+    }
+
+    @Test
+    void companionApplicationRequiresAdminVerificationAndSearchDoesNotExposeBaseAddress() throws Exception {
+        User applicant = userRepository.saveAndFlush(new User(
+                "Companion Applicant",
+                "companion@example.com",
+                "+919876543210",
+                passwordEncoder.encode(PASSWORD),
+                Role.COMPANION
+        ));
+        User family = userRepository.saveAndFlush(new User(
+                "Patient Family",
+                "family@example.com",
+                "+919876543211",
+                passwordEncoder.encode(PASSWORD),
+                Role.FAMILY
+        ));
+        User admin = userRepository.saveAndFlush(new User(
+                "Administrator",
+                "admin@example.com",
+                "+919876543212",
+                passwordEncoder.encode(PASSWORD),
+                Role.ADMIN
+        ));
+        User distantCompanion = new User(
+                "Distant Companion",
+                "distant@example.com",
+                "+919876543213",
+                passwordEncoder.encode(PASSWORD),
+                Role.COMPANION
+        );
+        distantCompanion.applyAsCompanion("Far from search point", 17.60, 78.5013);
+        distantCompanion.updateCompanionVerificationStatus(CompanionVerificationStatus.VERIFIED);
+        userRepository.saveAndFlush(distantCompanion);
+
+        String oldFamilyToken = jwtService.generateToken(applicant);
+        String familyToken = jwtService.generateToken(family);
+        String adminToken = jwtService.generateToken(admin);
+
+        MvcResult applicationResult = mockMvc.perform(put("/api/users/me/companion-profile")
+                        .header("Authorization", "Bearer " + oldFamilyToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "serviceLocationAddress": "Secunderabad Railway Station, Hyderabad",
+                                  "latitude": 17.4344,
+                                  "longitude": 78.5013
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.verificationStatus").value("PENDING"))
+                .andReturn();
+
+        JsonNode application = objectMapper.readTree(applicationResult.getResponse().getContentAsString());
+        String companionId = application.path("id").asText();
+
+        mockMvc.perform(get("/api/companions/search")
+                        .param("latitude", "17.4344")
+                        .param("longitude", "78.5013")
+                        .header("Authorization", "Bearer " + familyToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
+
+        mockMvc.perform(get("/api/admin/companions/pending")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(companionId));
+
+        mockMvc.perform(patch("/api/admin/companions/{companionId}/verification", companionId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"status\":\"VERIFIED\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.verificationStatus").value("VERIFIED"));
+
+        mockMvc.perform(get("/api/companions/search")
+                        .param("latitude", "17.4344")
+                        .param("longitude", "78.5013")
+                        .header("Authorization", "Bearer " + familyToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].id").value(companionId))
+                .andExpect(jsonPath("$[0].service").value("GENERAL_COMPANION"))
+                .andExpect(jsonPath("$[0].serviceLocationAddress").doesNotExist())
+                .andExpect(jsonPath("$[0].latitude").doesNotExist());
+
+        mockMvc.perform(get("/api/users/me")
+                        .header("Authorization", "Bearer " + oldFamilyToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.role").value("COMPANION"));
+
+        mockMvc.perform(put("/api/users/me/companion-location")
+                        .header("Authorization", "Bearer " + oldFamilyToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "serviceLocationAddress": "Nagole, Hyderabad",
+                                  "latitude": 17.4065,
+                                  "longitude": 78.5572
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.verificationStatus").value("PENDING"));
+        mockMvc.perform(get("/api/companions/search")
+                        .param("latitude", "17.4344")
+                        .param("longitude", "78.5013")
+                        .header("Authorization", "Bearer " + familyToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
     }
 
     @Test
@@ -176,8 +290,23 @@ class AuthIntegrationTest {
                         .content(objectMapper.writeValueAsString(
                                 new RegistrationBody("Sagar Ghate", EMAIL, "+919876543210",
                                         PASSWORD, otp, "ADMIN"))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value(
+                        "ADMIN accounts must be provisioned by a trusted administrator"));
+    }
+
+    @Test
+    void publicRegistrationCanCreatePendingCompanionAccount() throws Exception {
+        String email = "newcompanion@example.com";
+        String otp = sendOtpAndGetCode(email);
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                new RegistrationBody("New Companion", email, "+919876543214",
+                                        PASSWORD, otp, "COMPANION"))))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.user.role").value("FAMILY"))
+                .andExpect(jsonPath("$.user.role").value("COMPANION"))
+                .andExpect(jsonPath("$.user.companionVerificationStatus").value("PENDING"))
                 .andExpect(jsonPath("$.tokenType").value("Bearer"));
     }
 

@@ -101,6 +101,8 @@ mvn spring-boot:run
 
 For Gmail, enable 2-Step Verification and create an App Password; use that 16-character password for `MAIL_PASSWORD`, not your normal Google password. `JWT_SECRET` must be Base64-encoded and decode to at least 32 bytes. Generate and securely manage a different secret per environment. Do not commit credentials or secrets. The service listens at `http://localhost:8082`.
 
+If startup reports `Could not resolve placeholder 'JWT_SECRET'`, the variable is not set in the terminal launching Maven. For the complete local flow, run `.\scripts\start-local.ps1` from the repository root; it generates and shares the same secret with both services. If starting the user service alone, run the commands above in that same PowerShell window before `mvn spring-boot:run`. The booking service must use the same `JWT_SECRET` to validate its login tokens.
+
 The regular configuration uses `ddl-auto: validate` and Flyway migrations. For production, review and test each versioned migration against the deployed PostgreSQL version before rollout; do not use Hibernate `ddl-auto: update` in production. If a separate local-development profile later uses `ddl-auto: update`, keep it local-only and continue using migrations for production.
 
 ## Tests

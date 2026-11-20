@@ -1,6 +1,8 @@
 package com.startocare.userservice.controller;
 
 import com.startocare.userservice.dto.request.UpdateProfileRequest;
+import com.startocare.userservice.dto.request.CompanionProfileRequest;
+import com.startocare.userservice.dto.response.CompanionApplicationResponse;
 import com.startocare.userservice.dto.response.UserResponse;
 import com.startocare.userservice.security.UserPrincipal;
 import com.startocare.userservice.service.UserService;
@@ -8,6 +10,7 @@ import jakarta.validation.Valid;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -34,5 +37,31 @@ public class UserController {
     ) {
         return UserResponse.from(
                 userService.updateProfile(principal.userId(), request.fullName(), request.phoneNumber()));
+    }
+
+    @PutMapping("/me/companion-profile")
+    public CompanionApplicationResponse applyAsCompanion(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @Valid @RequestBody CompanionProfileRequest request
+    ) {
+        return CompanionApplicationResponse.from(userService.applyAsCompanion(
+                principal.userId(),
+                request.serviceLocationAddress(),
+                request.latitude(),
+                request.longitude()
+        ));
+    }
+
+    @PutMapping("/me/companion-location")
+    public CompanionApplicationResponse updateCompanionLocation(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @Valid @RequestBody CompanionProfileRequest request
+    ) {
+        return CompanionApplicationResponse.from(userService.updateCompanionLocation(
+                principal.userId(),
+                request.serviceLocationAddress(),
+                request.latitude(),
+                request.longitude()
+        ));
     }
 }

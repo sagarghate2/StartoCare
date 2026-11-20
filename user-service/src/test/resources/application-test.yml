@@ -12,5 +12,7 @@ spring:
     enabled: false
 
 app:
+  kafka:
+    enabled: false
   jwt:
     expiration-ms: 3600000

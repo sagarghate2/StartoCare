@@ -1,0 +1,43 @@
+server:
+  port: ${PORT:8084}
+
+spring:
+  application:
+    name: startocare-payment-service
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/paymentservice}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    baseline-version: 0
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: startocare-payment-service
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
+app:
+  kafka:
+    enabled: ${KAFKA_ENABLED:true}
+    outbox-poll-ms: ${KAFKA_OUTBOX_POLL_MS:1000}
+    topics:
+      payment-requested: ${KAFKA_PAYMENT_REQUESTED_TOPIC:payment.requested}
+      payment-succeeded: ${KAFKA_PAYMENT_SUCCEEDED_TOPIC:payment.succeeded}
+  jwt:
+    secret: ${JWT_SECRET}
+  razorpay:
+    key-id: ${RAZORPAY_KEY_ID}
+    key-secret: ${RAZORPAY_KEY_SECRET}
+    webhook-secret: ${RAZORPAY_WEBHOOK_SECRET}
