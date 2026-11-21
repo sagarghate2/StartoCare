@@ -1,0 +1,46 @@
+server:
+  port: ${PORT:8083}
+
+spring:
+  application:
+    name: startocare-booking-service
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/bookingservice}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    baseline-version: 0
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+    consumer:
+      group-id: startocare-booking-service
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+
+app:
+  kafka:
+    enabled: ${KAFKA_ENABLED:true}
+    outbox-poll-ms: ${KAFKA_OUTBOX_POLL_MS:1000}
+    location-response-timeout-ms: ${KAFKA_LOCATION_RESPONSE_TIMEOUT_MS:5000}
+    topics:
+      payment-requested: ${KAFKA_PAYMENT_REQUESTED_TOPIC:payment.requested}
+      payment-succeeded: ${KAFKA_PAYMENT_SUCCEEDED_TOPIC:payment.succeeded}
+      companion-location-request: ${KAFKA_COMPANION_LOCATION_REQUEST_TOPIC:companion.location.requested}
+      companion-location-response: ${KAFKA_COMPANION_LOCATION_RESPONSE_TOPIC:companion.location.response}
+  companion-api-key: ${COMPANION_API_KEY}
+  geoapify:
+    api-key: ${GEOAPIFY_API_KEY}
+  jwt:
+    secret: ${JWT_SECRET}
+    expiration-ms: 86400000

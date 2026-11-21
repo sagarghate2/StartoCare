@@ -1,5 +1,6 @@
 package com.startocare.userservice.dto.request;
 
+import com.startocare.userservice.enums.Role;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -23,7 +24,8 @@ public record RegisterRequest(
         @ValidPassword
         String password,
 
-        String otp
+        String otp,
+        Role role
 ) {
     public RegisterRequest {
         if (email != null) {

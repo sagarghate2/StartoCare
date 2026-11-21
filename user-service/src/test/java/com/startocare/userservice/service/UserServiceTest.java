@@ -37,7 +37,7 @@ class UserServiceTest {
 
         assertThrows(DuplicateEmailException.class, () -> userService.register(
                 new RegisterRequest("Sagar Ghate", " Sagar@example.com ", "+919876543210",
-                        "A-Strong-Password-123", null)
+                        "A-Strong-Password-123", null, null)
         ));
         verify(userRepository).saveAndFlush(any());
     }

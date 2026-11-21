@@ -65,6 +65,15 @@ public class User {
     @Column(name = "token_version", nullable = false)
     private int tokenVersion;
 
+    @Column(name = "service_location_address", columnDefinition = "TEXT")
+    private String serviceLocationAddress;
+
+    @Column(name = "service_latitude")
+    private Double serviceLatitude;
+
+    @Column(name = "service_longitude")
+    private Double serviceLongitude;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -80,7 +89,9 @@ public class User {
         this.phoneNumber = normalizePhoneNumber(phoneNumber);
         this.passwordHash = passwordHash;
         this.role = role;
-        this.companionVerificationStatus = CompanionVerificationStatus.NOT_APPLICABLE;
+        this.companionVerificationStatus = role == Role.COMPANION
+                ? CompanionVerificationStatus.PENDING
+                : CompanionVerificationStatus.NOT_APPLICABLE;
         this.enabled = true;
         this.tokenVersion = 0;
     }
@@ -141,6 +152,33 @@ public class User {
 
     public int getTokenVersion() {
         return tokenVersion;
+    }
+
+    public String getServiceLocationAddress() {
+        return serviceLocationAddress;
+    }
+
+    public Double getServiceLatitude() {
+        return serviceLatitude;
+    }
+
+    public Double getServiceLongitude() {
+        return serviceLongitude;
+    }
+
+    public void applyAsCompanion(String serviceLocationAddress, double latitude, double longitude) {
+        this.companionVerificationStatus = CompanionVerificationStatus.PENDING;
+        updateServiceLocation(serviceLocationAddress, latitude, longitude);
+    }
+
+    public void updateServiceLocation(String serviceLocationAddress, double latitude, double longitude) {
+        this.serviceLocationAddress = serviceLocationAddress.trim();
+        this.serviceLatitude = latitude;
+        this.serviceLongitude = longitude;
+    }
+
+    public void updateCompanionVerificationStatus(CompanionVerificationStatus status) {
+        this.companionVerificationStatus = status;
     }
 
     public void updateFullName(String fullName) {

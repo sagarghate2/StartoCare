@@ -4,6 +4,16 @@ server:
 spring:
   application:
     name: startocare-user-service
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: startocare-user-service
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
   mail:
     host: ${MAIL_HOST:smtp.gmail.com}
     port: ${MAIL_PORT:587}
@@ -29,6 +39,12 @@ spring:
     baseline-on-migrate: true
     baseline-version: 0
 app:
+  kafka:
+    enabled: ${KAFKA_ENABLED:true}
+    topics:
+      companion-location-request: ${KAFKA_COMPANION_LOCATION_REQUEST_TOPIC:companion.location.requested}
+      companion-location-response: ${KAFKA_COMPANION_LOCATION_RESPONSE_TOPIC:companion.location.response}
+  internal-api-key: ${COMPANION_API_KEY:}
   jwt:
     secret: ${JWT_SECRET}
     expiration-ms: ${JWT_EXPIRATION_MS:86400000}

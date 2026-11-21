@@ -1,0 +1,30 @@
+server:
+  port: 0
+
+spring:
+  datasource:
+    url: jdbc:h2:mem:payment_test;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DATABASE_TO_UPPER=false
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+  flyway:
+    enabled: false
+  kafka:
+    listener:
+      auto-startup: false
+
+app:
+  kafka:
+    enabled: false
+    topics:
+      payment-requested: payment.requested
+      payment-succeeded: payment.succeeded
+  jwt:
+    secret: ${JWT_SECRET:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=}
+  razorpay:
+    key-id: test_key_id
+    key-secret: test_key_secret
+    webhook-secret: test_webhook_secret
